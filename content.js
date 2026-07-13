@@ -1,3 +1,4 @@
+// Token Management
 let youtubeToken = null;
 
 browser.storage.local.get("youtubeToken").then(({ youtubeToken: storedToken }) => {
@@ -11,6 +12,11 @@ browser.storage.onChanged.addListener((changes, area) => {
         console.log("YouTube token updated:", youtubeToken);
     }
 });
+
+// Video Tracking
+const checkedVideos = new Set();
+
+// 
 
 const getVideoIdFromThumbnail = (thumbnail) => {
     const link = thumbnail.querySelector(
@@ -59,15 +65,16 @@ const queryThumbnails = () => {
     );
 
     thumbnails.forEach(async (thumbnail) => {
-        if(thumbnail.dataset.checked)
-            return;
-
-        thumbnail.dataset.checked = true;
-
         const videoId = getVideoIdFromThumbnail(thumbnail);
-
+        
         if(!videoId)
             return;
+        
+        if (checkedVideos.has(videoId))
+            return;
+        
+        checkedVideos.add(videoId);
+
 
         const result = await browser.runtime.sendMessage({
             action: "getRating",
