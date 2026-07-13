@@ -1,3 +1,17 @@
+let youtubeToken = null;
+
+browser.storage.local.get("youtubeToken").then(({ youtubeToken: storedToken }) => {
+    youtubeToken = storedToken;
+    console.log("Retrieved YouTube token from storage:", youtubeToken);
+});
+
+browser.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes.youtubeToken) {
+        youtubeToken = changes.youtubeToken.newValue;
+        console.log("YouTube token updated:", youtubeToken);
+    }
+});
+
 const getVideoIdFromThumbnail = (thumbnail) => {
     const link = thumbnail.querySelector(
         'a[href^="/watch?v="], a[href^="/shorts/"]'
@@ -27,13 +41,7 @@ const getVideoIdFromThumbnail = (thumbnail) => {
     return null;
 }
 
-const queryThumbnails = async () => {
-
-    const { youtubeToken } =
-        await browser.storage.local.get(
-            "youtubeToken"
-        );
-
+const queryThumbnails = () => {
     if (!youtubeToken) {
         console.log(
             "No YouTube token, skipping thumbnail query"
@@ -124,10 +132,15 @@ const addIndicator = (thumbnail, videoId) => {
 //     );
 // }
 
+let queryTimeout;
+
 const observer =
-new MutationObserver(
-    queryThumbnails
-);
+new MutationObserver(() => {
+    clearTimeout(queryTimeout);
+    queryTimeout = setTimeout(() => {
+        queryThumbnails();
+    }, 500);
+});
 
 observer.observe(
     document.body,
