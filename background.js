@@ -26,8 +26,8 @@ browser.runtime.onMessage.addListener(
             }));
         }
 
-        if (message.action === "getRating") {
-            return getRating(message.videoId).then(data => ({
+        if (message.action === "getRatings") {
+            return getRatings(message.videoIds).then(data => ({
                 success: data !== null,
                 data
             }));
@@ -48,7 +48,7 @@ browser.runtime.onMessage.addListener(
 //                 token
 //             }));
 
-//         case "getRating":
+//         case "getRatings":
 //             return getRating(message.videoId);
 
 //         case "getRedirectURL":
@@ -103,7 +103,7 @@ const login = async () => {
     return youtubeToken;
 }
 
-const getRating = async (videoId) => {
+const getRatings = async (videoIds) => {
     const {youtubeToken} =
         await browser.storage.local.get(
             "youtubeToken"
@@ -114,15 +114,19 @@ const getRating = async (videoId) => {
         return null;
     }
 
-    // TODO: add check for response.ok and handle errors
+    console.log("fetch for: "
+        + videoIds.length
+        + " video(s) with token: "
+    )
 
     const response =
         await fetch(
-            `https://www.googleapis.com/youtube/v3/videos/getRating?id=${videoId}`,
-            {
+            `https://www.googleapis.com/youtube/v3/videos/getRating?id=${videoIds.join(",")}&fields=items`, {
+                method: "GET",
                 headers:{
                     Authorization:
-                    `Bearer ${youtubeToken}`
+                    `Bearer ${youtubeToken}`,
+                    Accept: "application/json"
                 }
             }
         );

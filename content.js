@@ -18,6 +18,93 @@ const checkedVideos = new Set();
 
 // 
 
+const queryThumbnails = async () => {
+    if (!youtubeToken) {
+        console.log(
+            "No YouTube token, skipping thumbnail query"
+        );
+        return;
+    }
+
+    const ids = [];
+
+    const thumbnails = document.querySelectorAll(
+        `
+        ytd-rich-item-renderer,
+        ytd-video-renderer,
+        ytd-compact-video-renderer,
+        yt-lockup-view-model
+        `
+    );
+
+    thumbnails.forEach((thumbnail) => {
+        const videoId = getVideoIdFromThumbnail(thumbnail);
+        
+        if(!videoId)
+            return;
+        
+        if (checkedVideos.has(videoId))
+            return;
+
+        checkedVideos.add(videoId);
+
+        ids.push(videoId);
+    });
+    
+    if (ids.length === 0) {
+        console.log("No new video IDs found");
+        return;
+    }
+
+    chunkedIds = chunkArray(ids, 50); // Limit to 50 IDs per request
+
+    finalResult = [];
+
+    for (const chunk of chunkedIds) {
+        const result = await browser.runtime.sendMessage({
+            action: "getRatings",
+            videoIds: chunk
+        });
+
+        if (!result.success) {
+            console.error("Failed to get rating");
+            continue;
+        }
+
+        finalResult.push(...result.data.items);
+    }
+
+    console.log("Final result:", finalResult);
+
+    finalResult.forEach((item) => {
+        const videoId = item.videoId;
+        const rating = item.rating;
+
+        const thumbnail = Array.from(thumbnails).find(
+            (thumb) => getVideoIdFromThumbnail(thumb) === videoId
+        );
+
+        if (!thumbnail)
+            return;
+
+        if (rating === "like") {
+            console.log("Video is liked, adding indicator");
+            addIndicator(thumbnail, videoId);
+        }
+    })
+};
+
+
+const chunkArray = (array, chunkSize) => {
+    const chunks = [];
+
+    for (let i = 0; i < array.length; i += chunkSize) {
+        chunks.push(array.slice(i, i + chunkSize));
+    }
+
+    return chunks;
+}
+
 const getVideoIdFromThumbnail = (thumbnail) => {
     const link = thumbnail.querySelector(
         'a[href^="/watch?v="], a[href^="/shorts/"]'
@@ -45,54 +132,6 @@ const getVideoIdFromThumbnail = (thumbnail) => {
         return shortsMatch[1];
 
     return null;
-}
-
-const queryThumbnails = () => {
-    if (!youtubeToken) {
-        console.log(
-            "No YouTube token, skipping thumbnail query"
-        );
-        return;
-    }
-
-    const thumbnails = document.querySelectorAll(
-        `
-        ytd-rich-item-renderer,
-        ytd-video-renderer,
-        ytd-compact-video-renderer,
-        yt-lockup-view-model
-        `
-    );
-
-    thumbnails.forEach(async (thumbnail) => {
-        const videoId = getVideoIdFromThumbnail(thumbnail);
-        
-        if(!videoId)
-            return;
-        
-        if (checkedVideos.has(videoId))
-            return;
-
-        checkedVideos.add(videoId);
-
-        const result = await browser.runtime.sendMessage({
-            action: "getRating",
-            videoId
-        });
-
-        if (!result.success) {
-            console.error("Failed to get rating");
-            return;
-        }
-
-        if(result.data.items[0]?.rating === "like"){
-            console.log("Video is liked, adding indicator");
-            addIndicator(
-                thumbnail,
-                videoId
-            );
-        }
-    });
 }
 
 const addIndicator = (thumbnail, videoId) => {
