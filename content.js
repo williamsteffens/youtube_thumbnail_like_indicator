@@ -3,13 +3,13 @@ let youtubeToken = null;
 
 browser.storage.local.get("youtubeToken").then(({ youtubeToken: storedToken }) => {
     youtubeToken = storedToken;
-    console.log("Retrieved YouTube token from storage:", youtubeToken);
+    // console.log("Retrieved YouTube token from storage:", youtubeToken);
 });
 
 browser.storage.onChanged.addListener((changes, area) => {
     if (area === "local" && changes.youtubeToken) {
         youtubeToken = changes.youtubeToken.newValue;
-        console.log("YouTube token updated:", youtubeToken);
+        // console.log("YouTube token updated:", youtubeToken);
     }
 });
 
@@ -72,9 +72,8 @@ const queryThumbnails = () => {
         
         if (checkedVideos.has(videoId))
             return;
-        
-        checkedVideos.add(videoId);
 
+        checkedVideos.add(videoId);
 
         const result = await browser.runtime.sendMessage({
             action: "getRating",
@@ -97,7 +96,6 @@ const queryThumbnails = () => {
 }
 
 const addIndicator = (thumbnail, videoId) => {
-
     const badge =
         document.createElement(
             "div"
@@ -106,7 +104,7 @@ const addIndicator = (thumbnail, videoId) => {
     badge.className =
         "like-indicator";
 
-    badge.innerHTML =
+    badge.textContent =
         "👍";
 
     thumbnail
@@ -149,8 +147,10 @@ new MutationObserver(() => {
     }, 500);
 });
 
+const app = document.querySelector("ytd-app"); // we might be able to limit further to ytd-page-manager
+
 observer.observe(
-    document.body,
+    app,
     {
         childList:true,
         subtree:true
