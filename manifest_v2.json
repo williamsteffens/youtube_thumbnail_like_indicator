@@ -1,0 +1,33 @@
+{
+  "manifest_version": 2,
+  "name": "YouTube Like Indicator",
+  "version": "0.0.1",
+  "description": "Shows whether a YouTube video was liked.",
+  "permissions": [
+    "storage",
+    "identity",
+    "tabs",
+    "https://www.youtube.com/*",
+    "https://www.googleapis.com/*"
+  ],
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.youtube.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "styles.css"
+      ]
+    }
+  ],
+  "browser_action": {
+    "default_popup": "popup.html"
+  }
+}
