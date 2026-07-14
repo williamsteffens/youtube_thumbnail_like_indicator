@@ -34,9 +34,9 @@ const checkedVideos = new Set();
 /////////////////////////////////////////////////////////////////////////////////
 
 const queryThumbnails = async () => {
-    if (!youtubeToken) {
+    if (!isLoggedIn) {
         console.log(
-            "No YouTube token, skipping thumbnail query"
+            "Not logged in, skipping thumbnail query"
         );
         return;
     }
