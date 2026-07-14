@@ -1,5 +1,15 @@
 console.log("Background script loaded");
 
+browser.runtime.onInstalled.addListener(() => {
+    console.log(
+        "YouTube Like Indicator installed"
+    );
+});
+
+/////////////////////////////////////////////////////////////////////////////////
+// Login State Management
+/////////////////////////////////////////////////////////////////////////////////
+
 let youtubeToken = null;
 
 browser.storage.local.get("youtubeToken").then(({ youtubeToken: storedToken }) => {
@@ -11,11 +21,9 @@ browser.storage.onChanged.addListener((changes, area) => {
         youtubeToken = changes.youtubeToken.newValue;
 });
 
-browser.runtime.onInstalled.addListener(() => {
-    console.log(
-        "YouTube Like Indicator installed"
-    );
-});
+/////////////////////////////////////////////////////////////////////////////////
+// Message Handling
+/////////////////////////////////////////////////////////////////////////////////
 
 browser.runtime.onMessage.addListener((message) => {
     switch (message.action) {
@@ -77,6 +85,7 @@ browser.runtime.onMessage.addListener((message) => {
             });
     }
 });
+
 /////////////////////////////////////////////////////////////////////////////////
 // Login and YouTube API Functions
 /////////////////////////////////////////////////////////////////////////////////
