@@ -17,69 +17,69 @@ browser.runtime.onInstalled.addListener(() => {
     );
 });
 
-browser.runtime.onMessage.addListener(
-    (message) => {
-        if (message.action === "login") {
+browser.runtime.onMessage.addListener((message) => {
+    switch (message.action) {
+        case "login":
             return login().then(youtubeToken => ({
                 success: youtubeToken !== null,
                 youtubeToken
             }));
-        }
 
-        if (message.action === "logout") {
+        case "logout":
             console.log("Removing YouTube token");
-            browser.storage.local.get("youtubeToken").then(({ youtubeToken }) => {
-                console.log("Current YouTube token:", youtubeToken);
+
+            return browser.storage.local.remove("youtubeToken")
+                .then(() => {
+                    youtubeToken = null;
+
+                    return {
+                        success: true
+                    };
+                });
+
+        case "isLoggedIn":
+            return Promise.resolve({
+                success: !!youtubeToken
             });
 
-            return browser.storage.local.remove("youtubeToken").then(() => ({
+        case "log-uri":
+            console.log(
+                "Current URI:",
+                browser.identity.getRedirectURL()
+            );
+
+            return Promise.resolve({
                 success: true
-            }));
-        }
+            });
 
-        if (message.action === "isLoggedIn") {
-            return Promise.resolve({ success: !!youtubeToken });
-        }
+        case "getRatings":
+            return getRatings(message.videoIds)
+                .then(data => ({
+                    success: data !== null,
+                    data
+                }));
 
-        if (message.action === "log-uri") {
-            console.log("Current URI:", browser.identity.getRedirectURL());
-            return Promise.resolve({ success: true });
-        }
-
-        if (message.action === "getRatings") {
-            return getRatings(message.videoIds).then(data => ({
-                success: data !== null,
-                data
-            }));
-        }
-
-        if (message.action === "getRedirectURL") {
+        case "getRedirectURL":
             return Promise.resolve({
                 url: browser.identity.getRedirectURL(),
                 id: browser.runtime.id
             });
-        }
+
+        default:
+            console.warn(
+                "Unknown message action:",
+                message.action
+            );
+
+            return Promise.resolve({
+                success: false,
+                error: "Unknown action"
+            });
+    }
 });
-// browser.runtime.onMessage.addListener((message) => {
-//     switch (message.action) {
-//         case "login":
-//             return login().then(token => ({
-//                 success: true,
-//                 token
-//             }));
-
-//         case "getRatings":
-//             return getRating(message.videoId);
-
-//         case "getRedirectURL":
-//             return Promise.resolve({
-//                 url: browser.identity.getRedirectURL(),
-//                 id: browser.runtime.id
-//             });
-//     }
-// });
-
-
+/////////////////////////////////////////////////////////////////////////////////
+// Login and YouTube API Functions
+/////////////////////////////////////////////////////////////////////////////////
 
 const login = async () => {
     const redirectUri =
