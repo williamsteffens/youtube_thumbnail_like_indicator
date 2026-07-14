@@ -22,6 +22,18 @@ async () => {
 
 });
 
+document
+.querySelector("#log-uri")
+.addEventListener(
+"click",
+async () => {
+
+    await browser.runtime.sendMessage({
+        action:"log-uri"
+    });
+
+});
+
 // document
 // .getElementById("login")
 // .addEventListener(

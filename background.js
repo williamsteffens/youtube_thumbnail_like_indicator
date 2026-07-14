@@ -26,6 +26,11 @@ browser.runtime.onMessage.addListener(
             }));
         }
 
+        if (message.action === "log-uri") {
+            console.log("Current URI:", browser.identity.getRedirectURL());
+            return Promise.resolve({ success: true });
+        }
+
         if (message.action === "getRatings") {
             return getRatings(message.videoIds).then(data => ({
                 success: data !== null,
@@ -59,12 +64,23 @@ browser.runtime.onMessage.addListener(
 //     }
 // });
 
+let youtubeToken = null;
+
+browser.storage.local.get("youtubeToken").then(({ youtubeToken: storedToken }) => {
+    youtubeToken = storedToken;
+});
+
+browser.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes.youtubeToken)
+        youtubeToken = changes.youtubeToken.newValue;
+});
+
 const login = async () => {
     const redirectUri =
         browser.identity.getRedirectURL();
 
     const clientId =
-        "861378192930-eb7r5j25ul7jomuei2q0hh2g3kngfond.apps.googleusercontent.com";
+        "861378192930-b880dkjvbgvm4eih4074tn0lrmku58mu.apps.googleusercontent.com";
 
     const authUrl =
         "https://accounts.google.com/o/oauth2/v2/auth?"
@@ -104,20 +120,10 @@ const login = async () => {
 }
 
 const getRatings = async (videoIds) => {
-    const {youtubeToken} =
-        await browser.storage.local.get(
-            "youtubeToken"
-        );
-
     if (!youtubeToken) {
         console.log("No YouTube token");
         return null;
     }
-
-    console.log("fetch for: "
-        + videoIds.length
-        + " video(s) with token: "
-    )
 
     const response =
         await fetch(
