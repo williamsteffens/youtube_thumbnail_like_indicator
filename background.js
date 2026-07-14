@@ -1,5 +1,16 @@
 console.log("Background script loaded");
 
+let youtubeToken = null;
+
+browser.storage.local.get("youtubeToken").then(({ youtubeToken: storedToken }) => {
+    youtubeToken = storedToken;
+});
+
+browser.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes.youtubeToken)
+        youtubeToken = changes.youtubeToken.newValue;
+});
+
 browser.runtime.onInstalled.addListener(() => {
     console.log(
         "YouTube Like Indicator installed"
@@ -24,6 +35,10 @@ browser.runtime.onMessage.addListener(
             return browser.storage.local.remove("youtubeToken").then(() => ({
                 success: true
             }));
+        }
+
+        if (message.action === "isLoggedIn") {
+            return Promise.resolve({ success: !!youtubeToken });
         }
 
         if (message.action === "log-uri") {
@@ -64,16 +79,7 @@ browser.runtime.onMessage.addListener(
 //     }
 // });
 
-let youtubeToken = null;
 
-browser.storage.local.get("youtubeToken").then(({ youtubeToken: storedToken }) => {
-    youtubeToken = storedToken;
-});
-
-browser.storage.onChanged.addListener((changes, area) => {
-    if (area === "local" && changes.youtubeToken)
-        youtubeToken = changes.youtubeToken.newValue;
-});
 
 const login = async () => {
     const redirectUri =
@@ -111,6 +117,24 @@ const login = async () => {
 
     await browser.storage.local.set({
         youtubeToken
+    });
+
+    // Notify all open YouTube tabs
+    browser.tabs.query({
+        url:"*://*.youtube.com/*"
+    }).then(tabs => {
+        tabs.forEach(tab => {
+            browser.tabs.sendMessage(
+                tab.id,
+                {
+                    action:"loginStateChanged",
+                    loggedIn:true
+                }
+            )
+            .catch(() => {
+                // Ignore tabs without content script loaded
+            });
+        });
     });
 
     console.log("YouTube token stored: ", youtubeToken);

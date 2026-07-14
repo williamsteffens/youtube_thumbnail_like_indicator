@@ -1,16 +1,26 @@
 /////////////////////////////////////////////////////////////////////////////////
-// Token Management
+// Login State Change Handling
 /////////////////////////////////////////////////////////////////////////////////
 
-let youtubeToken = null;
+let isLoggedIn = false;
 
-browser.storage.local.get("youtubeToken").then(({ youtubeToken: storedToken }) => {
-    youtubeToken = storedToken;
+browser.runtime.sendMessage({
+    action:"isLoggedIn"
+})
+.then(response => {
+    isLoggedIn = response.success;
+
+    if(isLoggedIn)
+        queryThumbnails();
 });
 
-browser.storage.onChanged.addListener((changes, area) => {
-    if (area === "local" && changes.youtubeToken)
-        youtubeToken = changes.youtubeToken.newValue;
+browser.runtime.onMessage.addListener(message => {
+    if(message.action === "loginStateChanged"){
+        isLoggedIn = message.loggedIn;
+
+        if(isLoggedIn)
+            queryThumbnails();
+    }
 });
 
 /////////////////////////////////////////////////////////////////////////////////
