@@ -1,22 +1,27 @@
+/////////////////////////////////////////////////////////////////////////////////
 // Token Management
+/////////////////////////////////////////////////////////////////////////////////
+
 let youtubeToken = null;
 
 browser.storage.local.get("youtubeToken").then(({ youtubeToken: storedToken }) => {
     youtubeToken = storedToken;
-    // console.log("Retrieved YouTube token from storage:", youtubeToken);
 });
 
 browser.storage.onChanged.addListener((changes, area) => {
-    if (area === "local" && changes.youtubeToken) {
+    if (area === "local" && changes.youtubeToken)
         youtubeToken = changes.youtubeToken.newValue;
-        // console.log("YouTube token updated:", youtubeToken);
-    }
 });
 
+/////////////////////////////////////////////////////////////////////////////////
 // Video Tracking
+/////////////////////////////////////////////////////////////////////////////////
+
 const checkedVideos = new Set();
 
-// 
+/////////////////////////////////////////////////////////////////////////////////
+// Scanner and Logic
+/////////////////////////////////////////////////////////////////////////////////
 
 const queryThumbnails = async () => {
     if (!youtubeToken) {
@@ -26,7 +31,7 @@ const queryThumbnails = async () => {
         return;
     }
 
-    const ids = [];
+    const videoMap = new Map();
 
     const thumbnails = document.querySelectorAll(
         `
@@ -48,17 +53,38 @@ const queryThumbnails = async () => {
 
         checkedVideos.add(videoId);
 
-        ids.push(videoId);
+        videoMap.set(videoId, thumbnail);
     });
     
-    if (ids.length === 0) {
+    if (!videoMap.size) {
         console.log("No new video IDs found");
         return;
     }
 
-    chunkedIds = chunkArray(ids, 50); // Limit to 50 IDs per request
+    const ratings = await fetchRatings(videoMap);
 
-    finalResult = [];
+    ratings.forEach((item) => {
+        if (item.rating !== "like")
+            return;
+
+        const thumbnail = videoMap.get(item.videoId);
+
+        if (!thumbnail)
+            return;
+
+        addIndicator(thumbnail);
+    })
+};
+
+/////////////////////////////////////////////////////////////////////////////////
+// API Handling
+/////////////////////////////////////////////////////////////////////////////////
+
+const fetchRatings = async (videoMap) => {
+    const videoIds = [...videoMap.keys()];
+    const chunkedIds = chunkArray(videoIds, 50); // Limit to 50 IDs per request
+
+    const results = [];
 
     for (const chunk of chunkedIds) {
         const result = await browser.runtime.sendMessage({
@@ -71,29 +97,17 @@ const queryThumbnails = async () => {
             continue;
         }
 
-        finalResult.push(...result.data.items);
+        results.push(...result.data.items);
     }
 
-    console.log("Final result:", finalResult);
+    console.log("Final result:", results);
 
-    finalResult.forEach((item) => {
-        const videoId = item.videoId;
-        const rating = item.rating;
+    return results;
+}
 
-        const thumbnail = Array.from(thumbnails).find(
-            (thumb) => getVideoIdFromThumbnail(thumb) === videoId
-        );
-
-        if (!thumbnail)
-            return;
-
-        if (rating === "like") {
-            console.log("Video is liked, adding indicator");
-            addIndicator(thumbnail, videoId);
-        }
-    })
-};
-
+/////////////////////////////////////////////////////////////////////////////////
+// Helpers
+/////////////////////////////////////////////////////////////////////////////////
 
 const chunkArray = (array, chunkSize) => {
     const chunks = [];
@@ -118,23 +132,25 @@ const getVideoIdFromThumbnail = (thumbnail) => {
     );
 
     // Normal video: /watch?v=VIDEO_ID
-    const videoId = url.searchParams.get("v");
+    // const videoId = url.searchParams.get("v");
 
-    if (videoId)
-        return videoId;
+    // if (videoId)
+    //     return videoId;
 
-    // Shorts: /shorts/VIDEO_ID
-    const shortsMatch = url.pathname.match(
-        /^\/shorts\/([^\/]+)/
-    );
+    // // Shorts: /shorts/VIDEO_ID
+    // const shortsMatch = url.pathname.match(
+    //     /^\/shorts\/([^\/]+)/
+    // );
 
-    if (shortsMatch)
-        return shortsMatch[1];
+    // if (shortsMatch)
+    //     return shortsMatch[1];
 
-    return null;
+    // return null;
+
+    return url.searchParams.get("v") || url.pathname.split("/").pop();
 }
 
-const addIndicator = (thumbnail, videoId) => {
+const addIndicator = (thumbnail) => {
     const badge =
         document.createElement(
             "div"
@@ -149,32 +165,11 @@ const addIndicator = (thumbnail, videoId) => {
     thumbnail
         .querySelector("yt-thumbnail-view-model")
         ?.appendChild(badge);
-
-    // checkIfLiked(videoId)
-    //     .then(liked => {
-        
-            // badge.innerHTML =
-            //     liked
-            //     ? "👍 Liked"
-            //     : "○ Not liked";
-
-        // });
 }
 
-// const checkIfLiked = async (videoId) => {
-
-//     const response =
-//         await fetch(
-//         `https://www.googleapis.com/youtube/v3/videos/getRating?id=${videoId}`
-//         );
-
-//     const data =
-//         await response.json();
-
-//     return (
-//         data.items[0]?.rating === "like"
-//     );
-// }
+/////////////////////////////////////////////////////////////////////////////////
+// Mutation Observer
+/////////////////////////////////////////////////////////////////////////////////
 
 let queryTimeout;
 
@@ -195,15 +190,4 @@ observer.observe(
         subtree:true
     }
 );
-
-// console.log("Content script loaded");
-// browser.runtime.sendMessage({
-//     action: "getRedirectURL"
-// })
-// .then(response => {
-//     console.log(response)
-// })
-// .catch(err => {
-//     console.error(err);
-// });
 
