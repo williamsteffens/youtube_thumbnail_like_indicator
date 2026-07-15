@@ -185,21 +185,40 @@ const addIndicator = (thumbnail) => {
 
 let queryTimeout;
 
-const observer =
-new MutationObserver(() => {
+const observer = new MutationObserver(() => {
     clearTimeout(queryTimeout);
+
     queryTimeout = setTimeout(() => {
         queryThumbnails();
     }, 500);
 });
 
-const app = document.querySelector("ytd-app"); // we might be able to limit further to ytd-page-manager
+const startObserving = () => {
+    const app = document.querySelector("ytd-app"); // we might be able to limit further to ytd-page-manager
 
-observer.observe(
-    app,
-    {
-        childList:true,
-        subtree:true
+    // Youtube hasn't loaded yet, wait and try again
+    if (!app) {
+        setTimeout(startObserving, 1000);
+        return;
     }
-);
 
+    observer.observe(
+        app, {
+            childList:true,
+            subtree:true
+        }
+    );
+
+    // Initial scan
+    queryThumbnails();
+}
+
+// wait for load before observing, to avoid missing initial mutations
+if (document.readyState === "complete") {
+    startObserving();
+} else {
+    window.addEventListener(
+        "DOMContentLoaded", 
+        startObserving
+    );
+}
