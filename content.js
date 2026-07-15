@@ -35,9 +35,6 @@ const checkedVideos = new Set();
 
 const queryThumbnails = async () => {
     if (!isLoggedIn) {
-        console.log(
-            "Not logged in, skipping thumbnail query"
-        );
         return;
     }
 
@@ -68,14 +65,10 @@ const queryThumbnails = async () => {
         videoMap.set(videoId, thumbnail);
     });
     
-    if (!videoMap.size) {
-        console.log("No new video IDs found");
+    if (!videoMap.size)
         return;
-    }
 
     const ratings = await fetchRatings(videoMap);
-
-    console.log("Ratings:", ratings);
 
     ratings.forEach((item) => {
         if (item.rating !== "like")

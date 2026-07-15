@@ -164,9 +164,6 @@ const login = async () => {
         });
     });
 
-    console.log("YouTube token stored: ", newYoutubeToken);
-    console.log("URI: ", redirect_uri);
-
     return newYoutubeToken;
 }
 
