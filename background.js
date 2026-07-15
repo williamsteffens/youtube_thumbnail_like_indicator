@@ -2,7 +2,7 @@ console.log("Background script loaded");
 
 browser.runtime.onInstalled.addListener(() => {
     console.log(
-        "YouTube Like Indicator installed"
+        "YouTube Thumbnail Like Indicator installed"
     );
 });
 

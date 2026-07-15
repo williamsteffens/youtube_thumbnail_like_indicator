@@ -1,34 +1,41 @@
 {
-  "manifest_version": 3,
-  "name": "YouTube Like Indicator",
-  "version": "0.0.1",
-  "description": "Shows whether a YouTube video was liked.",
-  "permissions": [
-    "storage",
-    "identity",
-    "tabs"
-  ],
-  "host_permissions": [
-    "https://www.youtube.com/*",
-    "https://www.googleapis.com/*"
-  ],
-  "background": {
-    "scripts": ["background.js"]
-  },
-  "content_scripts": [
-    {
-      "matches": [
-        "https://www.youtube.com/*"
-      ],
-      "js": [
-        "content.js"
-      ],
-      "css": [
-        "styles.css"
-      ]
+    "manifest_version": 3,
+    "name": "YouTube Thumbnail Like Indicator",
+    "version": "0.0.1",
+    "description": "Shows whether a YouTube video was liked on its thumbnail.",
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "youtube-thumbnail-like-indicator@williamsteffens.dev"
+        }
+    },
+    "permissions": [
+        "storage",
+        "identity",
+        "tabs"
+    ],
+    "host_permissions": [
+        "https://www.youtube.com/*",
+        "https://www.googleapis.com/*"
+    ],
+    "background": {
+        "scripts": [
+            "background.js"
+        ]
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "https://www.youtube.com/*"
+            ],
+            "js": [
+                "content.js"
+            ],
+            "css": [
+                "styles.css"
+            ]
+        }
+    ],
+    "action": {
+        "default_popup": "popup.html"
     }
-  ],
-  "action": {
-    "default_popup": "popup.html"
-  }
 }
