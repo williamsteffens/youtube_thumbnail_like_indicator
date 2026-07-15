@@ -10,6 +10,9 @@ browser.runtime.onInstalled.addListener(() => {
 // Login State Management
 /////////////////////////////////////////////////////////////////////////////////
 
+const client_id = "861378192930-jp8g45a3bt489p31cq4hiokdnuo64f4g.apps.googleusercontent.com";
+const redirect_uri = browser.identity.getRedirectURL();
+
 let youtubeToken = null;
 let tokenExpiresAt = 0;
 
@@ -24,6 +27,8 @@ browser.storage.local.get([
 browser.storage.onChanged.addListener((changes, area) => {
     if (area === "local" && changes.youtubeToken)
         youtubeToken = changes.youtubeToken.newValue;
+    if (area === "local" && changes.expiresAt)
+        tokenExpiresAt = changes.expiresAt.newValue;
 });
 
 const isTokenExpired = () => {
@@ -37,9 +42,9 @@ const isTokenExpired = () => {
 browser.runtime.onMessage.addListener(async (message) => {
     switch (message.action) {
         case "login":
-            return login().then(youtubeToken => ({
-                success: youtubeToken !== null,
-                youtubeToken
+            return login().then(newYoutubeToken => ({
+                success: newYoutubeToken !== null,
+                newYoutubeToken
             }));
 
         case "logout":
@@ -109,18 +114,12 @@ const CACHE_EXPIRATION_TIME = 10 * 60 * 1000; // 10 minutes
 /////////////////////////////////////////////////////////////////////////////////
 
 const login = async () => {
-    const redirectUri =
-        browser.identity.getRedirectURL();
-
-    const clientId =
-        "861378192930-b880dkjvbgvm4eih4074tn0lrmku58mu.apps.googleusercontent.com";
-
     const authUrl =
         "https://accounts.google.com/o/oauth2/v2/auth?"
         +
         new URLSearchParams({
-            client_id: clientId,
-            redirect_uri: redirectUri,
+            client_id,
+            redirect_uri,
             response_type: "token",
             scope: "https://www.googleapis.com/auth/youtube.force-ssl",
             prompt: "consent"
@@ -136,14 +135,14 @@ const login = async () => {
         new URL(responseUrl).hash.substring(1)
     );
 
-    const youtubeToken = params.get("access_token");
+    const newYoutubeToken = params.get("access_token");
 
-    if (!youtubeToken) {
+    if (!newYoutubeToken) {
         throw new Error("No access token received");
     }
 
     await browser.storage.local.set({
-        youtubeToken,
+        youtubeToken: newYoutubeToken,
         expiresAt: Date.now() + (60 * 60 * 1000) // 1 hour
     });
 
@@ -165,10 +164,10 @@ const login = async () => {
         });
     });
 
-    console.log("YouTube token stored: ", youtubeToken);
-    console.log("URI: ", redirectUri);
+    console.log("YouTube token stored: ", newYoutubeToken);
+    console.log("URI: ", redirect_uri);
 
-    return youtubeToken;
+    return newYoutubeToken;
 }
 
 const logout = async () => {
