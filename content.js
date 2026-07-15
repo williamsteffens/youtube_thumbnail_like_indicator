@@ -52,6 +52,8 @@ const queryThumbnails = async () => {
         `
     );
 
+    console.log("checkedVideos:", checkedVideos);
+
     thumbnails.forEach((thumbnail) => {
         const videoId = getVideoIdFromThumbnail(thumbnail);
         
@@ -72,6 +74,8 @@ const queryThumbnails = async () => {
     }
 
     const ratings = await fetchRatings(videoMap);
+
+    console.log("Ratings:", ratings);
 
     ratings.forEach((item) => {
         if (item.rating !== "like")
@@ -107,7 +111,7 @@ const fetchRatings = async (videoMap) => {
             continue;
         }
 
-        results.push(...result.data.items);
+        results.push(...result.data);
     }
 
     console.log("Final result:", results);

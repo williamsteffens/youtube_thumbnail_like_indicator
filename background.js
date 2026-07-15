@@ -87,6 +87,13 @@ browser.runtime.onMessage.addListener((message) => {
 });
 
 /////////////////////////////////////////////////////////////////////////////////
+// Cache
+/////////////////////////////////////////////////////////////////////////////////
+
+const ratingCache = new Map();
+const CACHE_EXPIRATION_TIME = 10 * 60 * 1000; // 10 minutes
+
+/////////////////////////////////////////////////////////////////////////////////
 // Login and YouTube API Functions
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -154,13 +161,35 @@ const login = async () => {
 
 const getRatings = async (videoIds) => {
     if (!youtubeToken) {
-        console.log("No YouTube token");
+        console.log("No YouTube token available");
         return null;
+    }
+
+    const results = [];
+    const missingIds = [];
+
+    // Check cache first
+    for (const videoId of videoIds) {
+        const cached = ratingCache.get(videoId);
+
+        if (cached && (Date.now() - cached.timestamp < CACHE_EXPIRATION_TIME)) {
+            results.push({
+                videoId,
+                rating: cached.rating
+            });
+        } 
+        else {
+            missingIds.push(videoId);
+        }
+    }
+
+    if (missingIds.length === 0) {
+        return results;
     }
 
     const response =
         await fetch(
-            `https://www.googleapis.com/youtube/v3/videos/getRating?id=${videoIds.join(",")}&fields=items`, {
+            `https://www.googleapis.com/youtube/v3/videos/getRating?id=${missingIds.join(",")}&fields=items`, {
                 method: "GET",
                 headers:{
                     Authorization:
@@ -186,5 +215,20 @@ const getRatings = async (videoIds) => {
         return null;
     }
 
-    return response.json();
+    const data = await response.json();
+
+    // Update cache with new ratings
+    data.items.forEach(item => {
+        ratingCache.set(item.videoId, {
+            rating: item.rating,
+            timestamp: Date.now()
+        });
+
+        results.push({
+            videoId: item.videoId,
+            rating: item.rating
+        });
+    });
+
+    return results;
 }
