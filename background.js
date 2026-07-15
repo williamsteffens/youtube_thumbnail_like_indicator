@@ -11,9 +11,14 @@ browser.runtime.onInstalled.addListener(() => {
 /////////////////////////////////////////////////////////////////////////////////
 
 let youtubeToken = null;
+let tokenExpiresAt = 0;
 
-browser.storage.local.get("youtubeToken").then(({ youtubeToken: storedToken }) => {
-    youtubeToken = storedToken;
+browser.storage.local.get([
+    "youtubeToken",
+    "expiresAt"
+]).then(data => {
+    youtubeToken = data.youtubeToken;
+    tokenExpiresAt = data.expiresAt ?? 0;
 });
 
 browser.storage.onChanged.addListener((changes, area) => {
@@ -21,11 +26,15 @@ browser.storage.onChanged.addListener((changes, area) => {
         youtubeToken = changes.youtubeToken.newValue;
 });
 
+const isTokenExpired = () => {
+    return Date.now() >= tokenExpiresAt;
+}
+
 /////////////////////////////////////////////////////////////////////////////////
 // Message Handling
 /////////////////////////////////////////////////////////////////////////////////
 
-browser.runtime.onMessage.addListener((message) => {
+browser.runtime.onMessage.addListener(async (message) => {
     switch (message.action) {
         case "login":
             return login().then(youtubeToken => ({
@@ -36,19 +45,16 @@ browser.runtime.onMessage.addListener((message) => {
         case "logout":
             console.log("Removing YouTube token");
 
-            return browser.storage.local.remove("youtubeToken")
-                .then(() => {
-                    youtubeToken = null;
-
-                    return {
-                        success: true
-                    };
-                });
+            await logout();
+            
+            return {
+                success: true
+            };
 
         case "isLoggedIn":
-            return Promise.resolve({
-                success: !!youtubeToken
-            });
+            return {
+                success: !!youtubeToken && !isTokenExpired()
+            };
 
         case "log-uri":
             console.log(
@@ -56,22 +62,27 @@ browser.runtime.onMessage.addListener((message) => {
                 browser.identity.getRedirectURL()
             );
 
-            return Promise.resolve({
+            return {
                 success: true
-            });
+            };
 
         case "getRatings":
-            return getRatings(message.videoIds)
-                .then(data => ({
-                    success: data !== null,
-                    data
-                }));
+            const result = await getRatings(message.videoIds)
+
+            if (!result.success) {
+                console.error("Failed to get ratings:", result.error);
+
+                if (result.error === "TOKEN_EXPIRED")
+                    await logout();
+            }
+
+            return result;
 
         case "getRedirectURL":
-            return Promise.resolve({
+            return {
                 url: browser.identity.getRedirectURL(),
                 id: browser.runtime.id
-            });
+            };
 
         default:
             console.warn(
@@ -79,10 +90,10 @@ browser.runtime.onMessage.addListener((message) => {
                 message.action
             );
 
-            return Promise.resolve({
+            return {
                 success: false,
                 error: "Unknown action"
-            });
+            };
     }
 });
 
@@ -132,7 +143,8 @@ const login = async () => {
     }
 
     await browser.storage.local.set({
-        youtubeToken
+        youtubeToken,
+        expiresAt: Date.now() + (60 * 60 * 1000) // 1 hour
     });
 
     // Notify all open YouTube tabs
@@ -159,10 +171,31 @@ const login = async () => {
     return youtubeToken;
 }
 
+const logout = async () => {
+    youtubeToken = null;
+    tokenExpiresAt = 0;
+
+    await browser.storage.local.remove([
+        "youtubeToken",
+        "expiresAt"
+    ]);
+}
+
 const getRatings = async (videoIds) => {
     if (!youtubeToken) {
-        console.log("No YouTube token available");
-        return null;
+        console.log("No valid YouTube token available");
+        return {
+            success: false,
+            error: "NO_TOKEN"
+        };
+    }
+
+    if (isTokenExpired()) {
+        console.log("YouTube token has expired");
+        return {
+            success: false,
+            error: "TOKEN_EXPIRED"
+        };
     }
 
     const results = [];
@@ -184,7 +217,10 @@ const getRatings = async (videoIds) => {
     }
 
     if (missingIds.length === 0) {
-        return results;
+        return {
+            success: true,
+            data: results
+        };
     }
 
     const response =
@@ -202,7 +238,10 @@ const getRatings = async (videoIds) => {
     // Check for 401 Unauthorized and remove token if necessary
     if (response.status === 401) {
         await browser.storage.local.remove("youtubeToken");
-        return null;
+        return {
+            success: false,
+            error: "UNAUTHORIZED"
+        };
     }
 
     if (!response.ok) {
@@ -212,7 +251,10 @@ const getRatings = async (videoIds) => {
             await response.text()
         );
 
-        return null;
+        return {
+            success: false,
+            error: "API_ERROR"
+        };
     }
 
     const data = await response.json();
@@ -230,5 +272,8 @@ const getRatings = async (videoIds) => {
         });
     });
 
-    return results;
+    return {
+        success: true,
+        data: results
+    };
 }

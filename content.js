@@ -106,10 +106,8 @@ const fetchRatings = async (videoMap) => {
             videoIds: chunk
         });
 
-        if (!result.success) {
-            console.error("Failed to get rating");
+        if (!result.success)
             continue;
-        }
 
         results.push(...result.data);
     }
