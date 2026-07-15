@@ -5,7 +5,13 @@
     "description": "Shows whether a YouTube video was liked on its thumbnail.",
     "browser_specific_settings": {
         "gecko": {
-            "id": "youtube-thumbnail-like-indicator@williamsteffens.dev"
+            "id": "youtube-thumbnail-like-indicator@williamsteffens.dev",
+            "data_collection_permissions": {
+                "required": [
+                    "none"
+                ],
+                "optional": []
+            }
         }
     },
     "permissions": [
