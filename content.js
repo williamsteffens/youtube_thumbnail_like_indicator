@@ -49,8 +49,6 @@ const queryThumbnails = async () => {
         `
     );
 
-    console.log("checkedVideos:", checkedVideos);
-
     thumbnails.forEach((thumbnail) => {
         const videoId = getVideoIdFromThumbnail(thumbnail);
         
@@ -104,8 +102,6 @@ const fetchRatings = async (videoMap) => {
 
         results.push(...result.data);
     }
-
-    console.log("Final result:", results);
 
     return results;
 }
@@ -186,32 +182,11 @@ const observer = new MutationObserver(() => {
     }, 500);
 });
 
-const startObserving = () => {
-    const app = document.querySelector("ytd-app"); // we might be able to limit further to ytd-page-manager
+const app = document.querySelector("ytd-app"); // we might be able to limit further to ytd-page-manager
 
-    // Youtube hasn't loaded yet, wait and try again
-    if (!app) {
-        setTimeout(startObserving, 1000);
-        return;
+observer.observe(
+    app, {
+        childList:true,
+        subtree:true
     }
-
-    observer.observe(
-        app, {
-            childList:true,
-            subtree:true
-        }
-    );
-
-    // Initial scan
-    queryThumbnails();
-}
-
-// wait for load before observing, to avoid missing initial mutations
-if (document.readyState === "complete") {
-    startObserving();
-} else {
-    window.addEventListener(
-        "DOMContentLoaded", 
-        startObserving
-    );
-}
+);
