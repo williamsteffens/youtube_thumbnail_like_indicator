@@ -136,14 +136,14 @@ const login = async () => {
     );
 
     const newYoutubeToken = params.get("access_token");
+    const expiresIn = parseInt(params.get("expires_in"), 10);
 
-    if (!newYoutubeToken) {
+    if (!newYoutubeToken)
         throw new Error("No access token received");
-    }
 
     await browser.storage.local.set({
         youtubeToken: newYoutubeToken,
-        expiresAt: Date.now() + (60 * 60 * 1000) // 1 hour
+        expiresAt: expiresIn ? Date.now() + expiresIn * 1000 : 0
     });
 
     // Notify all open YouTube tabs
