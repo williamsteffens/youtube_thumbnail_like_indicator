@@ -1,15 +1,30 @@
-<button id="login">
-    Login with YouTube
-</button>
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="styles.css">
+</head>
 
-<button id="logout">
-    Logout (Remove Access Token)
-</button>
+<body>
+    <div class="container">
+        <h2>YouTube Auth</h2>
 
-<br>
+        <button id="login" class="btn primary">
+            Login with YouTube
+        </button>
 
-<button id="log-uri">
-    Log URI
-</button>
+        <button id="logout" class="btn danger">
+            Logout
+        </button>
 
-<script src="popup.js"></script>
+        <button id="log-uri" class="btn secondary">
+            Log URI
+        </button>
+    </div>
+
+    <div id="status-bar">
+        No token found
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

@@ -34,6 +34,20 @@ async () => {
 
 });
 
+document.addEventListener("DOMContentLoaded", async () => {
+    const statusBar = document.getElementById("status-bar");
+
+    const result = await browser.storage.local.get("access_token");
+
+    if (result.access_token) {
+        statusBar.textContent = "YouTube Connected";
+        statusBar.classList.add("connected");
+    } else {
+        statusBar.textContent = "No Token - Please Login";
+        statusBar.classList.remove("connected");
+    }
+});
+
 // document
 // .getElementById("login")
 // .addEventListener(

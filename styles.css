@@ -10,3 +10,72 @@
     font-size:12px;
     z-index:9999;
 }
+
+body {
+    width: 280px;
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #414141;
+    color: #fafafa;
+}
+
+.container {
+    padding: 20px;
+    text-align: center;
+}
+
+h2 {
+    margin: 0 0 20px;
+    font-size: 20px;
+}
+
+.btn {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+.btn:hover {
+    opacity: 0.85;
+}
+
+.primary {
+    background: #ff0000;
+    color: white;
+}
+
+.danger {
+    background: #555;
+    color: white;
+}
+
+.secondary {
+    background: #4285f4;
+    color: white;
+}
+
+#status-bar {
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 13px;
+    font-weight: bold;
+
+    color: white;
+    background: #d93025;
+
+    bottom: 0;
+    left: 0;
+    width: 100%;
+}
+
+#status-bar.connected {
+    background: #188038;
+}
