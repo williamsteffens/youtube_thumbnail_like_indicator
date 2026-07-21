@@ -195,8 +195,10 @@ const selector = `
 `;
 
 const observer = new MutationObserver(mutations => {
-    if (!isLoggedIn)
+    if (!isLoggedIn) {
+        debugLog("User not logged in, skipping mutation processing.");
         return;
+    }
 
     for (const mutation of mutations) {
         for (const node of mutation.addedNodes) {
@@ -216,7 +218,6 @@ const observer = new MutationObserver(mutations => {
 
     queryTimeout = setTimeout(() => {
         debugLog("Mutation observed, processing thumbnails...");
-        
         const thumbnails = [...pendingThumbnails];
         debugLog(thumbnails);
         pendingThumbnails.clear();
