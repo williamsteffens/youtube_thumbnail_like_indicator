@@ -1,4 +1,18 @@
 /////////////////////////////////////////////////////////////////////////////////
+// Debug
+// /////////////////////////////////////////////////////////////////////////////////
+const DEBUG = true;
+
+const debugLog = (...args) => {
+    if (DEBUG)
+        console.log(
+            // new Date().toISOString(),
+            "[YT Like Indicator Ext]",
+            ...args
+        );
+}
+
+/////////////////////////////////////////////////////////////////////////////////
 // Login State Change Handling
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -11,7 +25,9 @@ browser.runtime.sendMessage({
     isLoggedIn = response.success;
 
     if(isLoggedIn)
-        queryThumbnails();
+        processThumbnails(
+            [...document.querySelectorAll(selector)]
+        );
 });
 
 browser.runtime.onMessage.addListener(message => {
@@ -19,7 +35,9 @@ browser.runtime.onMessage.addListener(message => {
         isLoggedIn = message.loggedIn;
 
         if(isLoggedIn)
-            queryThumbnails();
+            processThumbnails(
+                [...document.querySelectorAll(selector)]
+            );
     }
 });
 
@@ -33,21 +51,11 @@ const checkedVideos = new Set();
 // Scanner and Logic
 /////////////////////////////////////////////////////////////////////////////////
 
-const queryThumbnails = async () => {
-    if (!isLoggedIn) {
+const processThumbnails = async (thumbnails = []) => {
+    if (!thumbnails.length)
         return;
-    }
 
     const videoMap = new Map();
-
-    const thumbnails = document.querySelectorAll(
-        `
-        ytd-rich-item-renderer,
-        ytd-video-renderer,
-        ytd-compact-video-renderer,
-        yt-lockup-view-model
-        `
-    );
 
     thumbnails.forEach((thumbnail) => {
         const videoId = getVideoIdFromThumbnail(thumbnail);
@@ -78,6 +86,10 @@ const queryThumbnails = async () => {
             return;
 
         addIndicator(thumbnail);
+
+        debugLog(
+            "Added indicator for video: ", item.videoId, thumbnail 
+        );
     })
 };
 
@@ -87,7 +99,7 @@ const queryThumbnails = async () => {
 
 const fetchRatings = async (videoMap) => {
     const videoIds = [...videoMap.keys()];
-    const chunkedIds = chunkArray(videoIds, 50); // Limit to 50 IDs per request
+    const chunkedIds = chunkArray(videoIds, 50); // Limit to 50 IDs per request per YouTube API documentation
 
     const results = [];
 
@@ -169,16 +181,46 @@ const addIndicator = (thumbnail) => {
 }
 
 /////////////////////////////////////////////////////////////////////////////////
-// Mutation Observer
+// Mutation Observer - Watches for changes in the DOM to process new thumbnails
 /////////////////////////////////////////////////////////////////////////////////
 
 let queryTimeout;
+let pendingThumbnails = new Set();
 
-const observer = new MutationObserver(() => {
+const selector = `
+    ytd-rich-item-renderer,
+    ytd-video-renderer,
+    ytd-compact-video-renderer,
+    yt-lockup-view-model
+`;
+
+const observer = new MutationObserver(mutations => {
+    if (!isLoggedIn)
+        return;
+
+    for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+            if (node.nodeType !== Node.ELEMENT_NODE)
+                continue;
+
+            // this should do a querty to make sure that no other of the elements 
+            // are already in the set, but for now we will just add them all and 
+            // let the set handle duplicates
+
+            if (node.matches(selector))
+                pendingThumbnails.add(node);
+        }
+    }
+
     clearTimeout(queryTimeout);
 
     queryTimeout = setTimeout(() => {
-        queryThumbnails();
+        debugLog("Mutation observed, processing thumbnails...");
+        
+        const thumbnails = [...pendingThumbnails];
+        debugLog(thumbnails);
+        pendingThumbnails.clear();
+        processThumbnails(thumbnails);
     }, 500);
 });
 
@@ -187,6 +229,8 @@ const app = document.querySelector("ytd-app"); // we might be able to limit furt
 observer.observe(
     app, {
         childList:true,
-        subtree:true
+        subtree:true,
+        attributes: true,
+        attributeFilter: ["style","src"]
     }
 );
