@@ -3,11 +3,9 @@ document
 .addEventListener(
 "click",
 async () => {
-
     await browser.runtime.sendMessage({
         action:"login"
     });
-
 });
 
 document
@@ -15,11 +13,9 @@ document
 .addEventListener(
 "click",
 async () => {
-
     await browser.runtime.sendMessage({
         action:"logout"
     });
-
 });
 
 document
@@ -37,9 +33,9 @@ async () => {
 document.addEventListener("DOMContentLoaded", async () => {
     const statusBar = document.getElementById("status-bar");
 
-    const result = await browser.storage.local.get("access_token");
+    const result = await browser.storage.local.get("youtubeToken");
 
-    if (result.access_token) {
+    if (result.youtubeToken) {
         statusBar.textContent = "YouTube Connected";
         statusBar.classList.add("connected");
     } else {
