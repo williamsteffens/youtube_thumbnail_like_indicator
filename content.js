@@ -18,26 +18,21 @@ const debugLog = (...args) => {
 
 let isLoggedIn = false;
 
-browser.runtime.sendMessage({
-    action:"isLoggedIn"
-})
-.then(response => {
-    isLoggedIn = response.success;
+browser.runtime.onMessage.addListener(async (message) => {
+    if(message.action !== "loginStateChanged")
+        return;
 
-    if(isLoggedIn)
+    isLoggedIn = message.loggedIn;
+
+    if(isLoggedIn) {
         processThumbnails(
-            [...document.querySelectorAll(selector)]
+            extractThumbnailsFromNode(document)
         );
-});
-
-browser.runtime.onMessage.addListener(message => {
-    if(message.action === "loginStateChanged"){
-        isLoggedIn = message.loggedIn;
-
-        if(isLoggedIn)
-            processThumbnails(
-                [...document.querySelectorAll(selector)]
-            );
+        await startObserver();
+    }
+    else if (observerStarted) {
+        observer.disconnect();
+        observerStarted = false;
     }
 });
 
@@ -51,36 +46,24 @@ const checkedVideos = new Set();
 // Scanner and Logic
 /////////////////////////////////////////////////////////////////////////////////
 
-const processThumbnails = async (thumbnails = []) => {
-    if (!thumbnails.length)
+const processThumbnails = async (thumbnails = new Map()) => {
+    if (!thumbnails.size)
         return;
 
-    const videoMap = new Map();
-
-    thumbnails.forEach((thumbnail) => {
-        const videoId = getVideoIdFromThumbnail(thumbnail);
-        
-        if(!videoId)
-            return;
-        
-        if (checkedVideos.has(videoId))
-            return;
-
-        checkedVideos.add(videoId);
-
-        videoMap.set(videoId, thumbnail);
-    });
+    const newThumbnails = new Map(
+        [...thumbnails].filter(([videoID]) => !checkedVideos.has(videoID))
+    );
     
-    if (!videoMap.size)
+    if (!newThumbnails.size)
         return;
 
-    const ratings = await fetchRatings(videoMap);
+    const ratings = await fetchRatings(newThumbnails);
 
     ratings.forEach((item) => {
         if (item.rating !== "like")
             return;
 
-        const thumbnail = videoMap.get(item.videoId);
+        const thumbnail = newThumbnails.get(item.videoId);
 
         if (!thumbnail)
             return;
@@ -91,6 +74,9 @@ const processThumbnails = async (thumbnails = []) => {
             "Added indicator for video: ", item.videoId, thumbnail 
         );
     })
+
+    for (const videoID of newThumbnails.keys())
+        checkedVideos.add(videoID);
 };
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -164,6 +150,9 @@ const getVideoIdFromThumbnail = (thumbnail) => {
 }
 
 const addIndicator = (thumbnail) => {
+    if (thumbnail.querySelector(".like-indicator"))
+        return;
+
     const badge =
         document.createElement(
             "div"
@@ -175,9 +164,57 @@ const addIndicator = (thumbnail) => {
     badge.textContent =
         "👍";
 
-    thumbnail
-        .querySelector("yt-thumbnail-view-model")
-        ?.appendChild(badge);
+    thumbnail?.appendChild(badge);
+}
+
+const extractThumbnailsFromNode = (node) => {
+    const thumbnails = new Map();
+    const elements = []
+
+    elements.push(
+        ...node.querySelectorAll(videoIDSelector)
+    );
+
+    for (const element of elements) {
+        const href = element.href;
+        if (!href)
+            continue;
+
+        const url = new URL(href);
+        const videoID = url.searchParams.get("v") || url.pathname.split("/").pop();
+
+        if (!videoID)
+            continue;
+
+        const thumbnail = element.querySelector(thumbnailSelector);
+        if (thumbnail)
+            thumbnails.set(videoID, thumbnail);
+    }
+    
+    return thumbnails;
+}
+
+function waitForElement(selector) {
+    return new Promise((resolve, reject) => {
+        const element = document.querySelector(selector);
+        if (element) {
+            resolve(element);
+            return;
+        }
+
+        const observer = new MutationObserver((mutations) => {
+            const element = document.querySelector(selector);
+            if (element) {
+                observer.disconnect();
+                resolve(element);
+            }
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    });
 }
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -185,8 +222,9 @@ const addIndicator = (thumbnail) => {
 /////////////////////////////////////////////////////////////////////////////////
 
 let queryTimeout;
-let pendingThumbnails = new Set();
+let pendingThumbnails = new Map();
 
+// different dom element selectors for different types of video thumbnails on YouTube
 const selector = `
     ytd-rich-item-renderer,
     ytd-video-renderer,
@@ -194,44 +232,85 @@ const selector = `
     yt-lockup-view-model
 `;
 
-const observer = new MutationObserver(mutations => {
-    if (!isLoggedIn) {
-        debugLog("User not logged in, skipping mutation processing.");
-        return;
-    }
+const thumbnailSelector = `
+    yt-thumbnail-view-model
+`;
 
+const videoIDSelector = `
+    a[href^="/watch?v="],
+    a[href^="/shorts/"]
+`;
+
+const observer = new MutationObserver(mutations => {
     for (const mutation of mutations) {
         for (const node of mutation.addedNodes) {
             if (node.nodeType !== Node.ELEMENT_NODE)
                 continue;
 
-            // this should do a querty to make sure that no other of the elements 
-            // are already in the set, but for now we will just add them all and 
-            // let the set handle duplicates
-
-            if (node.matches(selector))
-                pendingThumbnails.add(node);
+            const thumbnails = extractThumbnailsFromNode(node);
+            
+            for (const [videoID, thumbnail] of thumbnails)
+                if (!checkedVideos.has(videoID) && !pendingThumbnails.has(videoID))
+                    pendingThumbnails.set(videoID, thumbnail);
         }
     }
+
+    debugLog("Pending thumbnails:", pendingThumbnails);
 
     clearTimeout(queryTimeout);
 
     queryTimeout = setTimeout(() => {
-        debugLog("Mutation observed, processing thumbnails...");
-        const thumbnails = [...pendingThumbnails];
-        debugLog(thumbnails);
+        const thumbnails = new Map(pendingThumbnails);
         pendingThumbnails.clear();
         processThumbnails(thumbnails);
     }, 500);
 });
 
-const app = document.querySelector("ytd-app"); // we might be able to limit further to ytd-page-manager
+let observerStarted = false;
 
-observer.observe(
-    app, {
-        childList:true,
-        subtree:true,
-        attributes: true,
-        attributeFilter: ["style","src"]
+const startObserver = async () => {
+    if (observerStarted)
+        return;
+
+    const target = await waitForElement("ytd-browse");
+    debugLog("Starting observer on target:", target);
+    if (!target)
+        return;
+
+    observer.observe(
+        target, {
+            childList:true,
+            subtree:true,
+            attributes: true,
+            attributeFilter: ["style","src"]
+        }
+    );
+
+    observerStarted = true;
+}
+
+const initialize = async () => {
+    if (document.readyState === "loading") {
+        await new Promise(resolve => {
+            document.addEventListener("DOMContentLoaded", resolve, { once: true });
+        });
     }
-);
+
+    const repsonse = await browser.runtime.sendMessage({
+        action: "isLoggedIn"
+    });
+
+    debugLog("Login state:", repsonse);
+
+    isLoggedIn = repsonse.success;
+    if (!isLoggedIn)
+        return;
+
+    processThumbnails(
+        extractThumbnailsFromNode(document)
+    );
+
+    await startObserver();
+}
+
+initialize();
