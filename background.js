@@ -7,6 +7,13 @@ browser.runtime.onInstalled.addListener(() => {
 });
 
 /////////////////////////////////////////////////////////////////////////////////
+// API GetRatings Handler
+// Alternative to OAuth flow
+/////////////////////////////////////////////////////////////////////////////////
+
+
+
+/////////////////////////////////////////////////////////////////////////////////
 // Login State Management
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -50,9 +57,9 @@ const isTokenExpired = () => Date.now() >= (tokenExpiresAt - 30_000); // Conside
 /////////////////////////////////////////////////////////////////////////////////
 
 browser.runtime.onMessage.addListener(async (message) => {
+    await storageReady; // Ensure initial token state has been loaded.
     switch (message.action) {
         case "login":
-            await storageReady; // Ensure we have the latest token info before proceeding
             try {
                 const token = await ensureLoggedIn(true);
                 return {
@@ -88,8 +95,7 @@ browser.runtime.onMessage.addListener(async (message) => {
                 success: true
             };
 
-        case "getRatings":
-            await storageReady; // Ensure we have the latest token info before proceeding
+        case "getRatings": { // scope block to allow variable declarations
             const token = await ensureLoggedIn(false);
             if (!token) {
                 return {
@@ -102,6 +108,7 @@ browser.runtime.onMessage.addListener(async (message) => {
 
             if (!result.success && (result.error === "TOKEN_EXPIRED" || result.error === "UNAUTHORIZED")) {
                 const refreshedToken = await refreshAccessToken();
+
                 if (!refreshedToken) {
                     await logout();
                     return {
@@ -109,9 +116,11 @@ browser.runtime.onMessage.addListener(async (message) => {
                         error: "TOKEN_REFRESH_FAILED"
                     };
                 }
-
+                
+                return await getRatings(message.videoIds);
             }
             return result;
+        }
 
         case "getRedirectURL":
             return {
