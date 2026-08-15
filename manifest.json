@@ -25,7 +25,7 @@
     ],
     "background": {
         "scripts": [
-            "background.js"
+            "src/background/index.js"
         ]
     },
     "content_scripts": [
@@ -34,28 +34,28 @@
                 "https://www.youtube.com/*"
             ],
             "js": [
-                "content.js"
+                "src/content/index.js"
             ],
             "css": [
-                "styles.css"
+                "src/content/styles.css"
             ]
         }
     ],
     "icons": {
-        "16": "icons/icon-16.png",
-        "32": "icons/icon-32.png",
-        "48": "icons/icon-48.png",
-        "96": "icons/icon-96.png",
-        "128": "icons/icon-128.png"
+        "16": "assets/icons/icon-16.png",
+        "32": "assets/icons/icon-32.png",
+        "48": "assets/icons/icon-48.png",
+        "96": "assets/icons/icon-96.png",
+        "128": "assets/icons/icon-128.png"
     },
     "action": {
-        "default_popup": "popup.html",
+        "default_popup": "src/popup/index.html",
         "default_icon": {
-            "16": "icons/icon-16.png",
-            "32": "icons/icon-32.png",
-            "48": "icons/icon-48.png",
-            "96": "icons/icon-96.png",
-            "128": "icons/icon-128.png"
+            "16": "assets/icons/icon-16.png",
+            "32": "assets/icons/icon-32.png",
+            "48": "assets/icons/icon-48.png",
+            "96": "assets/icons/icon-96.png",
+            "128": "assets/icons/icon-128.png"
         }
     }
 }

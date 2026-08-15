@@ -17,8 +17,8 @@ browser.runtime.onInstalled.addListener(() => {
 // Login State Management
 /////////////////////////////////////////////////////////////////////////////////
 
-const client_id = "861378192930-jp8g45a3bt489p31cq4hiokdnuo64f4g.apps.googleusercontent.com";
-const client_secret = process.env.GOOGLE_OAUTH2_SECRET; // Note: In a real-world scenario, you should not expose client secrets in client-side code. This is for demonstration purposes only.
+const client_id = "";
+const client_secret = ""; // Note: In a real-world scenario, you should not expose client secrets in client-side code. This is for demonstration purposes only.
 const redirect_uri = browser.identity.getRedirectURL();
 
 let youtubeToken = null;
