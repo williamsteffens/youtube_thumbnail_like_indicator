@@ -11,36 +11,51 @@ import * as selector from "./selectors.js";
 let queryTimeout;
 const pendingThumbnails = new Map();
 
+function addNewThumbnailsToPending(node) {
+    const thumbnails = extractThumbnailsFromNode(node);
+    let added = false;
+
+    for (const [videoID, thumbnail] of thumbnails) {
+        if (
+            checkedVideos.has(videoID) ||
+            pendingThumbnails.has(videoID)
+        )
+            continue;
+
+        pendingThumbnails.set(videoID, thumbnail);
+        added = true;
+    }
+
+    return added
+}
+
 const observer = new MutationObserver(mutations => {
+    let added = false;
     for (const mutation of mutations) {
         for (const node of mutation.addedNodes) {
             if (node.nodeType !== Node.ELEMENT_NODE)
                 continue;
 
-            const thumbnails = extractThumbnailsFromNode(node);
-
-            for (const [videoID, thumbnail] of thumbnails) {
-                if (
-                    checkedVideos.has(videoID) ||
-                    pendingThumbnails.has(videoID)
-                )
-                    continue;
-
-                pendingThumbnails.set(videoID, thumbnail);
-            }
+            if (addNewThumbnailsToPending(node))
+                added = true;
         }
     }
+
+    if (!added)
+        return;
 
     debugLog(
         "Pending thumbnails:",
         pendingThumbnails
     );
 
+    // Debounce the processing of thumbnails to avoid excessive calls when many nodes are added in quick succession.
     clearTimeout(queryTimeout);
 
     queryTimeout = setTimeout(() => {
         const thumbnails = new Map(pendingThumbnails);
         pendingThumbnails.clear();
+        
         processThumbnails(thumbnails);
     }, 500);
 });
@@ -92,12 +107,8 @@ export async function startObserver() {
         target, {
             childList: true,
             subtree: true,
-            attributes: true,
-            attributeFilter: [
-                "style",
-                "src"
-            ]
-    });
+        }
+    );
 
     setObserverStarted(true);
 };
