@@ -12,39 +12,38 @@ let queryTimeout;
 const pendingThumbnails = new Map();
 
 const observer = new MutationObserver(mutations => {
-        for (const mutation of mutations) {
-            for (const node of mutation.addedNodes) {
-                if (node.nodeType !== Node.ELEMENT_NODE)
+    for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+            if (node.nodeType !== Node.ELEMENT_NODE)
+                continue;
+
+            const thumbnails = extractThumbnailsFromNode(node);
+
+            for (const [videoID, thumbnail] of thumbnails) {
+                if (
+                    checkedVideos.has(videoID) ||
+                    pendingThumbnails.has(videoID)
+                )
                     continue;
 
-                const thumbnails = extractThumbnailsFromNode(node);
-
-                for (const [videoID, thumbnail] of thumbnails) {
-                    if (
-                        checkedVideos.has(videoID) ||
-                        pendingThumbnails.has(videoID)
-                    )
-                        continue;
-
-                    pendingThumbnails.set(videoID, thumbnail);
-                }
+                pendingThumbnails.set(videoID, thumbnail);
             }
         }
-
-        debugLog(
-            "Pending thumbnails:",
-            pendingThumbnails
-        );
-
-        clearTimeout(queryTimeout);
-
-        queryTimeout = setTimeout(() => {
-            const thumbnails = new Map(pendingThumbnails);
-            pendingThumbnails.clear();
-            processThumbnails(thumbnails);
-        }, 500);
     }
-);
+
+    debugLog(
+        "Pending thumbnails:",
+        pendingThumbnails
+    );
+
+    clearTimeout(queryTimeout);
+
+    queryTimeout = setTimeout(() => {
+        const thumbnails = new Map(pendingThumbnails);
+        pendingThumbnails.clear();
+        processThumbnails(thumbnails);
+    }, 500);
+});
 
 function waitForElement(selector) {
     return new Promise((resolve) => {
