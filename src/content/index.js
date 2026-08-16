@@ -5,7 +5,7 @@ import {
 } from "./state.js";
 import { initializeLoginHandling } from "./login.js";
 import { startObserver } from "./observer.js";
-import { processThumbnails } from "./scanner.js";
+import { processThumbnails } from "./thumbnail_processor.js";
 import { extractThumbnailsFromNode } from "./youtube.js";
 
 async function initialize() {

@@ -4,7 +4,7 @@ import {
     getObserverStarted,
     setObserverStarted
 } from "./state.js";
-import { processThumbnails } from "./scanner.js";
+import { processThumbnails } from "./thumbnail_processor.js";
 import { extractThumbnailsFromNode } from "./youtube.js";
 import * as selector from "./selectors.js";
 

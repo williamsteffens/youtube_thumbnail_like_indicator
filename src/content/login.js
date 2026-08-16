@@ -9,7 +9,7 @@ import {
 import {
     extractThumbnailsFromNode
 } from "./youtube.js";
-import { processThumbnails } from "./scanner.js";
+import { processThumbnails } from "./thumbnail_processor.js";
 
 export const initializeLoginHandling = () => {
     browser.runtime.onMessage.addListener(
