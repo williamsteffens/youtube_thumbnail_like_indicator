@@ -1,7 +1,9 @@
-console.log("Background script loaded");
+import { debugLog } from "../utils/debugLog.js";
+
+debugLog("Background script loaded");
 
 browser.runtime.onInstalled.addListener(() => {
-    console.log(
+    debugLog(
         "YouTube Thumbnail Like Indicator installed"
     );
 });
@@ -17,8 +19,8 @@ browser.runtime.onInstalled.addListener(() => {
 // Login State Management
 /////////////////////////////////////////////////////////////////////////////////
 
-const client_id = import.meta.env.GOOGLE_OAUTH2_CLIENT;
-const client_secret = import.meta.env.GOOGLE_OAUTH2_SECRET; // Note: In a real-world scenario, you should not expose client secrets in client-side code. This is for demonstration purposes only.
+const client_id = import.meta.env.VITE_GOOGLE_OAUTH2_CLIENT;
+const client_secret = import.meta.env.VITE_GOOGLE_OAUTH2_SECRET; // Note: In a real-world scenario, you should not expose client secrets in client-side code. This is for demonstration purposes only.
 const redirect_uri = browser.identity.getRedirectURL();
 
 let youtubeToken = null;
@@ -86,7 +88,7 @@ browser.runtime.onMessage.addListener(async (message) => {
             };
 
         case "log-uri":
-            console.log(
+            debugLog(
                 "Current URI:",
                 browser.identity.getRedirectURL()
             );
@@ -154,7 +156,7 @@ const CACHE_EXPIRATION_TIME = 10 * 60 * 1000; // 10 minutes
 
 const ensureLoggedIn = async (interactive) => {
     if (authInFlight) {
-        console.log("Auth already in progress, waiting for result...");
+        debugLog("Auth already in progress, waiting for result...");
         return authInFlight;
     }
 
@@ -365,7 +367,7 @@ const createPkcePair = async () => {
 
 const getRatings = async (videoIds) => {
     if (!youtubeToken) {
-        console.log("No valid YouTube token available");
+        debugLog("No valid YouTube token available");
         return {
             success: false,
             error: "NO_TOKEN"
@@ -373,7 +375,7 @@ const getRatings = async (videoIds) => {
     }
 
     if (isTokenExpired()) {
-        console.log("YouTube token has expired");
+        debugLog("YouTube token has expired");
         return {
             success: false,
             error: "TOKEN_EXPIRED"

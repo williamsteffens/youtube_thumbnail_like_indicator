@@ -7,9 +7,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "vite", 
     "watch": "vite build --watch",
-    "build": "vite build --mode dev",
-    "build:dev": "vite build --mode dev",
-    "build:prod": "vite build --mode prod"
+    "build": "vite build --mode dev && vite build -c vite.content.config.js --mode dev",
+    "build:dev": "vite build --mode dev && vite build -c vite.content.config.js --mode dev",
+    "build:prod": "vite build --mode prod && vite build -c vite.content.config.js --mode prod"
   },
   "repository": {
     "type": "git",

@@ -7,29 +7,22 @@ set the rootdir and public dir manually as well as the outdir.
 Another possible solution might be to use @samrum/vite-plugin-web-extension
 */
 
+const root = import.meta.dirname;
+const src = resolve(root, "src");
+
 export default defineConfig({
-    root: resolve(import.meta.dirname, "src"),
-    publicDir: resolve(import.meta.dirname, "public"),
+    root: src,
+    publicDir: resolve(root, "public"),
+    envDir: root,
+    
     build: {
-        outDir: resolve(import.meta.dirname, "dist"),
+        outDir: resolve(root, "dist"),
         emptyOutDir: true,
 
         rollupOptions: {
             input: {
-                content: resolve(
-                    import.meta.dirname,
-                    "src/content/index.js"
-                ),
-
-                background: resolve(
-                    import.meta.dirname,
-                    "src/background/index.js"
-                ),
-
-                popup: resolve(
-                    import.meta.dirname,
-                    "src/popup/index.html"
-                )
+                background: resolve(src, "background/index.js"),
+                popup: resolve(src, "popup/index.html")
             },
 
             output: {

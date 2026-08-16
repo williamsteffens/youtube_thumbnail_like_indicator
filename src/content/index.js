@@ -1,4 +1,4 @@
-import { debugLog } from "../util/debugLog.js";
+import { debugLog } from "../utils/debugLog.js";
 
 /////////////////////////////////////////////////////////////////////////////////
 // Login State Change Handling
