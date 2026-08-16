@@ -1,0 +1,27 @@
+{
+  "name": "youtube_thumbnail_like_indicator",
+  "version": "1.0.0",
+  "description": "A lightweight browser extension that displays whether you've **liked a YouTube video directly on its thumbnail**, making it easy to recognize videos you've already enjoyed while browsing.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "vite build",
+    "dev": "vite", 
+    "watch": "vite build --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/williamsteffens/youtube_thumbnail_like_indicator.git"
+  },
+  "keywords": [],
+  "author": "williamsteffens",
+  "license": "MIT",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/williamsteffens/youtube_thumbnail_like_indicator/issues"
+  },
+  "homepage": "https://github.com/williamsteffens/youtube_thumbnail_like_indicator#readme",
+  "devDependencies": {
+    "vite": "^8.2.1"
+  }
+}
