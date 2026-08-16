@@ -1,6 +1,5 @@
 import { debugLog } from "../utils/debugLog.js";
 import { checkedVideos } from "./state.js";
-import { addIndicator } from "./indicator.js";
 
 function chunkArray(array, chunkSize) {
     const chunks = [];
@@ -12,6 +11,18 @@ function chunkArray(array, chunkSize) {
     }
 
     return chunks;
+}
+
+function addIndicator(thumbnail) {
+    if (thumbnail.querySelector(".like-indicator"))
+        return;
+
+    const badge = document.createElement("div");
+
+    badge.className = "like-indicator";
+    badge.textContent = "👍";
+
+    thumbnail.appendChild(badge);
 }
 
 async function fetchRatings(videoMap) {
