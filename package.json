@@ -5,9 +5,11 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "vite build",
     "dev": "vite", 
-    "watch": "vite build --watch"
+    "watch": "vite build --watch",
+    "build": "vite build --mode dev",
+    "build:dev": "vite build --mode dev",
+    "build:prod": "vite build --mode prod"
   },
   "repository": {
     "type": "git",
